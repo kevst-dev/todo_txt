@@ -34,7 +34,6 @@ lint.extend-ignore = [
   "D212", # Multi-line docstring summary should start at the first line
   "D203", # 1 blank line required before class docstring
   "PLC2401",
-  "PD901",
 ]
 lint.typing-modules = ["mypackage._compat.typing"]
 src = ["src"]
