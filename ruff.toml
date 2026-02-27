@@ -1,0 +1,51 @@
+lint.select = [
+  "E", "F", "W", # flake8
+  "B",           # flake8-bugbear
+  "I",           # isort
+  "ARG",         # flake8-unused-arguments
+  "C4",          # flake8-comprehensions
+  "EM",          # flake8-errmsg
+  "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "G",           # flake8-logging-format
+  "PGH",         # pygrep-hooks
+  "PIE",         # flake8-pie
+  "PL",          # pylint
+  "PT",          # flake8-pytest-style
+  "PTH",         # flake8-use-pathlib
+  "RET",         # flake8-return
+  # "RUF",         # Ruff-specific
+  "SIM",         # flake8-simplify
+  "T20",         # flake8-print
+  "UP",          # pyupgrade
+  "YTT",         # flake8-2020
+  "EXE",         # flake8-executable
+  "NPY",         # NumPy specific rules
+  "PD",          # pandas-vet
+  "E501",   # Line too long
+  "D",      # pydocstyle
+]
+lint.extend-ignore = [
+  "PLR",    # Design related pylint codes
+  # "PT004",  # Use underscore for non-returning fixture (use usefixture instead)
+  "T201", # print()
+  "D417", # Missing docstring
+  "D211", # No blank lines allowed after function docstring
+  "D212", # Multi-line docstring summary should start at the first line
+  "D203", # 1 blank line required before class docstring
+  "PLC2401",
+  "PD901",
+]
+lint.typing-modules = ["mypackage._compat.typing"]
+src = ["src"]
+lint.unfixable = [
+  "T20",  # Prints
+  "T20",  # Removes print statements
+  "F841", # Removes unused variables
+]
+exclude = []
+lint.flake8-unused-arguments.ignore-variadic-names = true
+lint.isort.required-imports = ["from __future__ import annotations"]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["T20", "D", "E501"]
