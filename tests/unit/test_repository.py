@@ -4,81 +4,67 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from todo_txt.model.task import TodoTask
 from todo_txt.model.todo_list import TodoList
 from todo_txt.repository import TodoRepository
 
 
-def test_repository_load_missing_files(tmp_path: Path) -> None:
-    """Verifica que si los archivos no existen, se devuelve una lista vacía."""
+def test_repository_load_todo_missing_file(tmp_path: Path) -> None:
+    """Verifica que si el archivo no existe, se devuelve una lista vacía."""
     repo = TodoRepository(tmp_path / "todo.txt", tmp_path / "done.txt")
-    todo_list = repo.load()
+    todo_list = repo.load_todo()
 
     assert len(todo_list) == 0
 
 
-def test_repository_load_from_both_files(tmp_path: Path) -> None:
-    """Verifica la carga combinada de todo.txt y done.txt."""
+def test_repository_load_todo_only(tmp_path: Path) -> None:
+    """Verifica que load_todo solo carga el archivo todo.txt."""
     todo_file = tmp_path / "todo.txt"
     done_file = tmp_path / "done.txt"
 
-    todo_file.write_text("Tarea pendiente 1\nTarea pendiente 2\n", encoding="utf-8")
-    done_file.write_text("x 2026-02-27 Tarea completada\n", encoding="utf-8")
+    todo_file.write_text("Tarea 1\n", encoding="utf-8")
+    done_file.write_text("x Tarea terminada\n", encoding="utf-8")
 
     repo = TodoRepository(todo_file, done_file)
-    todo_list = repo.load()
+    todo_list = repo.load_todo()
 
-    assert len(todo_list) == 3
-    # Verificamos que se cargaron ambos estados
-    pendings = [t for t in todo_list if not t.is_completed]
-    completed = [t for t in todo_list if t.is_completed]
-
-    assert len(pendings) == 2
-    assert len(completed) == 1
+    assert len(todo_list) == 1
+    assert todo_list.get_task(1).description == "Tarea 1"
 
 
-def test_repository_save_distributes_tasks(tmp_path: Path) -> None:
-    """Verifica que las tareas se repartan correctamente entre archivos al guardar."""
+def test_repository_save_todo_preserves_blank_lines(tmp_path: Path) -> None:
+    """Verifica que save_todo respeta las líneas vacías."""
+    todo_file = tmp_path / "todo.txt"
+    repo = TodoRepository(todo_file, tmp_path / "done.txt")
+
+    lines = ["Tarea 1", "", "Tarea 3"]
+    todo_list = TodoList.from_lines(lines)
+
+    repo.save_todo(todo_list)
+
+    content = todo_file.read_text(encoding="utf-8")
+    assert content == "Tarea 1\n\nTarea 3\n"
+
+
+def test_repository_archive_completed(tmp_path: Path) -> None:
+    """Verifica que el archivado mueve tareas de un archivo a otro."""
     todo_file = tmp_path / "todo.txt"
     done_file = tmp_path / "done.txt"
+
+    # Setup: 1 pendiente, 1 completada
+    todo_file.write_text("Pendiente\nx Completada\n", encoding="utf-8")
+
     repo = TodoRepository(todo_file, done_file)
+    todo_list = repo.load_todo()
 
-    # Creamos una lista con tareas mixtas
-    tasks = [
-        TodoTask.parse("Pendiente A"),
-        TodoTask.parse("x 2026-02-27 Completada B"),
-        TodoTask.parse("Pendiente C"),
-    ]
-    todo_list = TodoList(tasks)
+    # Ejecutar archivado
+    archived_count = repo.archive_completed(todo_list)
 
-    # Guardamos
-    repo.save(todo_list)
+    assert archived_count == 1
 
-    # Verificamos el contenido de los archivos
+    # Verificar todo.txt (solo queda la pendiente)
     todo_content = todo_file.read_text(encoding="utf-8")
+    assert todo_content == "Pendiente\n"
+
+    # Verificar done.txt (se añadió la completada)
     done_content = done_file.read_text(encoding="utf-8")
-
-    assert "Pendiente A" in todo_content
-    assert "Pendiente C" in todo_content
-    assert "Completada B" in done_content
-    # Verificamos que no se cruzaron
-    assert "Completada B" not in todo_content
-    assert "Pendiente A" not in done_content
-
-
-def test_repository_save_overwrites_content(tmp_path: Path) -> None:
-    """Verifica que el guardado sobrescribe el contenido previo."""
-    todo_file = tmp_path / "todo.txt"
-    done_file = tmp_path / "done.txt"
-
-    # Archivo con basura previa
-    todo_file.write_text("CONTENIDO VIEJO\n", encoding="utf-8")
-
-    repo = TodoRepository(todo_file, done_file)
-    todo_list = TodoList.from_lines(["NUEVO CONTENIDO"])
-
-    repo.save(todo_list)
-
-    todo_content = todo_file.read_text(encoding="utf-8")
-    assert "CONTENIDO VIEJO" not in todo_content
-    assert "NUEVO CONTENIDO" in todo_content
+    assert "x Completada" in done_content

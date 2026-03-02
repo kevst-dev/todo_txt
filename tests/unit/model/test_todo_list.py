@@ -60,3 +60,20 @@ def test_list_all_with_ids() -> None:
     all_tasks = todo_list.list_all()
 
     assert all_tasks == [(1, todo_list.get_task(1)), (2, todo_list.get_task(2))]
+
+
+def test_empty_lines_preserve_ids() -> None:
+    lines = [
+        "Tarea 1",
+        "",
+        "Tarea 3",
+    ]
+    todo_list = TodoList.from_lines(lines)
+
+    # El ID de Tarea 3 debe ser 3, no 2
+    assert len(todo_list) == 3
+    assert todo_list.get_task(3).description == "Tarea 3"
+
+    tasks = todo_list.list_all()
+    assert len(tasks) == 2  # Solo 2 tareas válidas
+    assert tasks[1][0] == 3  # Su ID es 3

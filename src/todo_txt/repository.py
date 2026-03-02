@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from todo_txt.model.task import TodoTask
 from todo_txt.model.todo_list import TodoList
 
 
@@ -16,45 +15,51 @@ class TodoRepository:
         self.todo_path = todo_path
         self.done_path = done_path
 
-    def load(self) -> TodoList:
+    def load_todo(self) -> TodoList:
+        """Carga las tareas únicamente del archivo todo.txt."""
+        lines: list[str] = []
+        if self.todo_path.exists():
+            with self.todo_path.open("r", encoding="utf-8") as f:
+                lines = f.readlines()
+        return TodoList.from_lines(lines)
+
+    def save_todo(self, todo_list: TodoList) -> None:
+        """Guarda el estado actual de la lista en todo.txt (preservando orden e IDs)."""
+        if not self.todo_path.parent.exists():
+            self.todo_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with self.todo_path.open("w", encoding="utf-8") as f:
+            # Usamos el acceso interno para no saltar los huecos (None)
+            # y mantener la estructura exacta del archivo.
+            for task_or_none in todo_list._tasks:
+                if task_or_none is None:
+                    f.write("\n")
+                else:
+                    f.write(f"{task_or_none}\n")
+
+    def archive_completed(self, todo_list: TodoList) -> int:
         """
-        Carga todas las tareas de ambos archivos en una sola lista.
+        Mueve las tareas completadas de todo_list al archivo done.txt.
 
-        Si los archivos no existen, devuelve una lista vacía.
+        Devuelve el número de tareas archivadas.
         """
-        all_lines: list[str] = []
-        for path in [self.todo_path, self.done_path]:
-            if path.exists():
-                with path.open("r", encoding="utf-8") as f:
-                    all_lines.extend(f.readlines())
+        completed_tasks = todo_list.filter(is_completed=True)
+        if not completed_tasks:
+            return 0
 
-        return TodoList.from_lines(all_lines)
+        # 1. Añadir al final de done.txt (append mode)
+        if not self.done_path.parent.exists():
+            self.done_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def save(self, todo_list: TodoList) -> None:
-        """
-        Separa las tareas y las guarda en sus archivos correspondientes.
-
-        Sobrescribe los archivos existentes para reflejar el estado actual
-        de la lista de tareas.
-        """
-        pending_tasks: list[TodoTask] = []
-        completed_tasks: list[TodoTask] = []
-
-        for task in todo_list:
-            if task.is_completed:
-                completed_tasks.append(task)
-            else:
-                pending_tasks.append(task)
-
-        self._write_to_file(self.todo_path, pending_tasks)
-        self._write_to_file(self.done_path, completed_tasks)
-
-    def _write_to_file(self, path: Path, tasks: list[TodoTask]) -> None:
-        """Escribe una lista de tareas en un archivo (sobrescribe)."""
-        # Aseguramos que el directorio exista
-        if not path.parent.exists():
-            path.parent.mkdir(parents=True, exist_ok=True)
-
-        with path.open("w", encoding="utf-8") as f:
-            for task in tasks:
+        with self.done_path.open("a", encoding="utf-8") as f:
+            for _, task in completed_tasks:
                 f.write(f"{task}\n")
+
+        # 2. Eliminar de todo_list (físicamente, de abajo a arriba)
+        for tid, _ in sorted(completed_tasks, key=lambda x: x[0], reverse=True):
+            todo_list.remove_task(tid)
+
+        # 3. Persistir el cambio en todo.txt
+        self.save_todo(todo_list)
+
+        return len(completed_tasks)

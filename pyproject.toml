@@ -7,7 +7,9 @@ authors = [
     { name = "kevst-dev", email = "kevst-dev@protonmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "rich>=14.3.3",
+]
 
 [dependency-groups]
 dev = [
