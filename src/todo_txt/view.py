@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from todo_txt.model.task import TodoTask
+from todo_txt.model.todo_list import TaskEntry
 
 # Definición de columnas disponibles
 AVAILABLE_COLUMNS = [
@@ -31,14 +31,14 @@ PRIORITY_STYLES = {
 
 
 def print_tasks(
-    tasks_with_id: list[tuple[int, TodoTask]],
+    tasks_with_id: list[TaskEntry],
     columns: list[str] | None = None,
 ) -> None:
     """
     Imprime una tabla bonita con las tareas proporcionadas.
 
     Args:
-        tasks_with_id: Lista de tuplas (id, tarea).
+        tasks_with_id: Lista de objetos TaskEntry (id + tarea).
         columns: Lista de nombres de columnas a mostrar. Si es None, muestra todas.
 
     """
@@ -70,7 +70,9 @@ def print_tasks(
         table.add_column("Tags", style="dim italic")
 
     # 2. Rellenar las filas
-    for task_id, task in tasks_with_id:
+    for entry in tasks_with_id:
+        task_id = entry.id
+        task = entry.task
         row_data = []
         style = "dim" if task.is_completed else ""
 

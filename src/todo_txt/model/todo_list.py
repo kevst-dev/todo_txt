@@ -3,8 +3,29 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import NamedTuple
 
 from todo_txt.model.task import TodoTask
+
+
+class TaskEntry(NamedTuple):
+    """
+    Representa una tarea vinculada a su posición física en el archivo.
+
+    Esta clase es un contenedor inmutable (basado en tupla) que asocia
+    una instancia de TodoTask con su identificador de línea (ID). Se utiliza
+    principalmente para transportar información entre la lógica de negocio
+    (TodoList) y las capas de presentación (View) o persistencia (Repository).
+
+    Atributos:
+        id: El número de línea de la tarea en el archivo todo.txt (1-based).
+            Este ID es dinámico y corresponde a la posición actual en la lista.
+        task: La instancia de TodoTask que contiene los datos parseados
+            (descripción, prioridad, fechas, etc.).
+    """
+
+    id: int
+    task: TodoTask
 
 
 class TodoList:
@@ -69,11 +90,15 @@ class TodoList:
             msg = f"No se puede actualizar: ID {task_id} no encontrado"
             raise IndexError(msg)
 
-    def list_all(self) -> list[tuple[int, TodoTask]]:
-        """Devuelve todas las tareas válidas con su ID de línea original."""
-        return [(i + 1, task) for i, task in enumerate(self._tasks) if task is not None]
+    def list_all(self) -> list[TaskEntry]:
+        """Devuelve todas las tareas válidas vinculadas a su ID de línea actual."""
+        return [
+            TaskEntry(id=i + 1, task=task)
+            for i, task in enumerate(self._tasks)
+            if task is not None
+        ]
 
-    def filter(self, *, is_completed: bool | None = None) -> list[tuple[int, TodoTask]]:
+    def filter(self, *, is_completed: bool | None = None) -> list[TaskEntry]:
         """
         Filtra las tareas por su estado de completitud.
 
@@ -81,11 +106,14 @@ class TodoList:
             is_completed: Si es True, solo terminadas. Si es False, solo pendientes.
                          Si es None (por defecto), devuelve todas.
 
+        Returns:
+            Una lista de TaskEntry que cumplen con el criterio de filtrado.
+
         """
-        all_tasks = self.list_all()
+        all_entries = self.list_all()
         if is_completed is None:
-            return all_tasks
-        return [(tid, t) for tid, t in all_tasks if t.is_completed == is_completed]
+            return all_entries
+        return [e for e in all_entries if e.task.is_completed == is_completed]
 
     def __len__(self) -> int:
         """Devuelve el número total de líneas (incluyendo vacías)."""

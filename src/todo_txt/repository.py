@@ -52,12 +52,12 @@ class TodoRepository:
             self.done_path.parent.mkdir(parents=True, exist_ok=True)
 
         with self.done_path.open("a", encoding="utf-8") as f:
-            for _, task in completed_tasks:
-                f.write(f"{task}\n")
+            for entry in completed_tasks:
+                f.write(f"{entry.task}\n")
 
         # 2. Eliminar de todo_list (físicamente, de abajo a arriba)
-        for tid, _ in sorted(completed_tasks, key=lambda x: x[0], reverse=True):
-            todo_list.remove_task(tid)
+        for entry in sorted(completed_tasks, key=lambda e: e.id, reverse=True):
+            todo_list.remove_task(entry.id)
 
         # 3. Persistir el cambio en todo.txt
         self.save_todo(todo_list)

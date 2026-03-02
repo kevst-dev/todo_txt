@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from todo_txt.model.task import TodoTask
-from todo_txt.model.todo_list import TodoList
+from todo_txt.model.todo_list import TaskEntry, TodoList
 
 
 def test_todo_list_from_lines() -> None:
@@ -59,7 +59,10 @@ def test_list_all_with_ids() -> None:
     todo_list = TodoList.from_lines(["T1", "T2"])
     all_tasks = todo_list.list_all()
 
-    assert all_tasks == [(1, todo_list.get_task(1)), (2, todo_list.get_task(2))]
+    assert all_tasks == [
+        TaskEntry(1, todo_list.get_task(1)),
+        TaskEntry(2, todo_list.get_task(2)),
+    ]
 
 
 def test_empty_lines_preserve_ids() -> None:
@@ -76,4 +79,4 @@ def test_empty_lines_preserve_ids() -> None:
 
     tasks = todo_list.list_all()
     assert len(tasks) == 2  # Solo 2 tareas válidas
-    assert tasks[1][0] == 3  # Su ID es 3
+    assert tasks[1].id == 3  # Su ID es 3
