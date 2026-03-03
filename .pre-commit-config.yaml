@@ -28,7 +28,7 @@ repos:
       - id: mypy
         # files: src
         args: []
-        additional_dependencies: ["pydantic"]
+        additional_dependencies: ["pydantic", "pytest"]
 
   - repo: https://github.com/PyCQA/bandit
     rev: "1.9.4"
