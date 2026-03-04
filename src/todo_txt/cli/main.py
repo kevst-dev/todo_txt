@@ -12,6 +12,7 @@ from .handle_do import handle_do
 from .handle_edit import handle_edit
 from .handle_list import handle_list
 from .handle_note import handle_note
+from .handle_stats import handle_stats
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -68,6 +69,14 @@ def main(argv: list[str] | None = None) -> None:
     note_parser = subparsers.add_parser("note", help="Abrir nota asociada a una tarea")
     note_parser.add_argument("id", type=int, help="ID de la tarea con el tag note:file")
 
+    # Subcomando 'stats'
+    stats_parser = subparsers.add_parser("stats", aliases=["st"], help="Analíticas")
+    stats_subparsers = stats_parser.add_subparsers(
+        dest="subcommand", help="Subcomandos de analíticas"
+    )
+    # Hacemos que 'summary' sea el subcomando
+    stats_subparsers.add_parser("summary", help="Resumen por proyectos y contextos")
+
     # Subcomando 'archive'
     subparsers.add_parser("archive", help="Archivar tareas completadas")
 
@@ -85,6 +94,8 @@ def main(argv: list[str] | None = None) -> None:
             handle_edit(args)
         case "note":
             handle_note(args)
+        case "stats" | "st":
+            handle_stats(args)
         case "archive":
             handle_archive(args)
         case _:
