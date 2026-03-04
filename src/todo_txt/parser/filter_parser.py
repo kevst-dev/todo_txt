@@ -10,6 +10,7 @@ from todo_txt.model.filters import (
     AndFilter,
     CompletedFilter,
     ContextFilter,
+    DateFilter,
     NotFilter,
     OrFilter,
     PriorityFilter,
@@ -18,7 +19,7 @@ from todo_txt.model.filters import (
     TaskFilter,
 )
 
-# Gramática de Lark para el DSL de filtros
+# Gramática de Lark para el DSL de filtros.
 GRAMMAR = r"""
 ?start: expr
 
@@ -36,10 +37,16 @@ _OR: "OR" | "or" | "||"
 _AND: "AND" | "and" | "&&"
 _NOT: "NOT" | "not" | "!"
 
-ATTR: "project" | "priority" | "context" | "done"
+# Atributos reservados del sistema (Añadimos created y completed)
+ATTR: "project" | "priority" | "context" | "done" | "created" | "completed"
+
+# Atributos de etiquetas personalizadas (ej: tag.wait, tag.note)
 TAG_ATTR: "tag." /[a-zA-Z_]\w*/
+
 OP: "==" | "!=" | ">=" | "<=" | ">" | "<"
-VALUE: /'[^']*'/ | /"[^"]*"/ | /\w+/
+
+# El valor puede ser un string entrecomillado, una palabra simple o una fecha ISO
+VALUE: /'[^']*'/ | /"[^"]*"/ | /\w+/ | /\d{4}-\d{2}-\d{2}/
 
 %import common.WS
 %ignore WS
@@ -56,10 +63,12 @@ class FilterTransformer(Transformer):  # type: ignore[misc]
         operator = str(op)
         value = str(val).strip("'\"")
 
+        # Caso 1: Filtro por etiqueta personalizada (tag.key == value)
         if attr_name.startswith("tag."):
             tag_key = attr_name[4:]
             return TagFilter(tag_key, value, operator=operator)
 
+        # Caso 2: Filtros por atributos del sistema
         if attr_name == "project":
             return ProjectFilter(value, operator=operator)
         if attr_name == "priority":
@@ -69,6 +78,12 @@ class FilterTransformer(Transformer):  # type: ignore[misc]
         if attr_name == "done":
             bool_val = value.lower() == "true"
             return CompletedFilter(bool_val, operator=operator)
+
+        # Caso 3: Filtros de fecha
+        if attr_name == "created":
+            return DateFilter("creation_date", value, operator=operator)
+        if attr_name == "completed":
+            return DateFilter("completion_date", value, operator=operator)
 
         msg = f"Atributo no soportado: {attr_name}"
         raise ValueError(msg)
@@ -95,7 +110,7 @@ def parse_filter(expression: str) -> TaskFilter:
     Convierte una cadena de texto en un filtro de tareas ejecutable.
 
     Args:
-        expression: La cadena con el filtro (ej: "project == 'uniandes'").
+        expression: La cadena con el filtro (ej: "created > '2026-01-01'").
 
     Returns:
         Un objeto TaskFilter listo para ser usado con TodoList.find().

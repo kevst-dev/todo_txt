@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
+from typing import cast
 
 from todo_txt.model.task import TodoTask
 
@@ -166,24 +168,67 @@ class TagFilter(TaskFilter):
 
     def matches(self, task: TodoTask) -> bool:
         """Verifica si la tarea tiene el tag con el valor indicado."""
-        # Obtenemos el valor del tag (None si no existe)
         actual_value = task.special_tags.get(self.key)
 
         if self.value == "":
-            # Caso: Buscar tareas SIN este tag
             is_missing = actual_value is None
             return is_missing if self.operator == "==" else not is_missing
 
         if actual_value is None:
-            # Si la tarea no tiene el tag, solo coincide si el operador es !=
             return self.operator == "!="
 
+        # Lógica de comparación alfabética básica por ahora
         if self.operator == "==":
             return actual_value == self.value
         if self.operator == "!=":
             return actual_value != self.value
 
-        # Por ahora no soportamos rangos en tags genéricos (ej: wait > 'A')
+        return False
+
+
+class DateFilter(TaskFilter):
+    """Filtra tareas por atributos de fecha (creación, completado)."""
+
+    def __init__(self, attr_name: str, value: str, operator: str = "==") -> None:
+        """
+        Inicializa el filtro de fecha.
+
+        Args:
+            attr_name: Nombre del atributo en TodoTask (creation_date, completion_date).
+            value: Fecha en formato ISO (YYYY-MM-DD) o "" para nulos.
+            operator: Operador de comparación.
+
+        """
+        self.attr_name = attr_name
+        self.operator = operator
+        self.target_date = date.fromisoformat(value) if value != "" else None
+
+    def matches(self, task: TodoTask) -> bool:
+        """Compara la fecha de la tarea con la fecha objetivo."""
+        # Obtenemos el valor y aseguramos el tipo para Mypy
+        actual_val = getattr(task, self.attr_name)
+        actual_date = cast(date | None, actual_val)
+
+        if self.target_date is None:
+            is_none = actual_date is None
+            return is_none if self.operator == "==" else not is_none
+
+        if actual_date is None:
+            return self.operator == "!="
+
+        if self.operator == "==":
+            return actual_date == self.target_date
+        if self.operator == "!=":
+            return actual_date != self.target_date
+        if self.operator == ">":
+            return actual_date > self.target_date
+        if self.operator == ">=":
+            return actual_date >= self.target_date
+        if self.operator == "<":
+            return actual_date < self.target_date
+        if self.operator == "<=":
+            return actual_date <= self.target_date
+
         return False
 
 

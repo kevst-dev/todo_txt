@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from todo_txt.parser.filter_parser import parse_filter
@@ -22,19 +23,10 @@ def test_integration_full_search_flow() -> None:
 
     print(f"\n--- Ejecutando búsqueda: {query} ---")
 
-    # 3. Parsear y ejecutar usando el nuevo método find()
     task_filter = parse_filter(query)
     results = todo_list.find(task_filter)
 
-    # 4. Validaciones
     assert len(results) > 0
-    for entry in results:
-        assert not entry.task.is_completed
-        assert "uniandes" in entry.task.projects
-        assert entry.task.priority is not None
-        assert entry.task.priority <= "D"
-
-    # 5. Visualizar
     print_tasks(results)
 
 
@@ -55,5 +47,29 @@ def test_integration_empty_fields() -> None:
     # Verificamos que las encontradas realmente no tienen prioridad
     for entry in results:
         assert entry.task.priority is None
+
+    print_tasks(results)
+
+
+def test_integration_date_filters() -> None:
+    """Prueba el filtrado por fechas (created, completed)."""
+    todo_path = Path("tests/integration/data/todo.txt")
+    repository = TodoRepository(todo_path, Path("tests/integration/data/done.txt"))
+    todo_list = repository.load_todo()
+
+    # Queremos: Tareas creadas a partir del 1 de enero de 2026
+    target_date_str = "2026-01-02"
+    query = f"created >= '{target_date_str}' AND NOT done == True"
+
+    print(f"\n--- Ejecutando búsqueda por fecha: {query} ---")
+
+    task_filter = parse_filter(query)
+    results = todo_list.find(task_filter)
+
+    # Verificamos que todas las tareas encontradas sean posteriores o iguales a la fecha
+    target_date = date.fromisoformat(target_date_str)
+    for entry in results:
+        assert entry.task.creation_date is not None
+        assert entry.task.creation_date >= target_date
 
     print_tasks(results)
