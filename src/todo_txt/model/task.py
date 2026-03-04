@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 
@@ -139,6 +139,14 @@ class TodoTask:
         description = " ".join(line.split())
 
         return description, projects, contexts, tags
+
+    def complete(self) -> TodoTask:
+        """Devuelve una nueva instancia de la tarea marcada como completada."""
+        return replace(
+            self,
+            is_completed=True,
+            completion_date=date.today(),
+        )
 
     def __str__(self) -> str:
         """Devuelve la representación en formato todo.txt."""

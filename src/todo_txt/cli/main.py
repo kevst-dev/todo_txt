@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .handle_add import handle_add
+from .handle_do import handle_do
 from .handle_list import handle_list
 
 
@@ -51,6 +52,10 @@ def main(argv: list[str] | None = None) -> None:
         "text", type=str, help="Texto de la tarea (ej: '(A) Mi tarea @casa +familia')"
     )
 
+    # Subcomando 'do'
+    do_parser = subparsers.add_parser("do", help="Marcar una tarea como completada")
+    do_parser.add_argument("id", type=int, help="ID de la tarea")
+
     args = parser.parse_args(argv)
 
     # Pattern Matching para el manejo de comandos
@@ -59,6 +64,8 @@ def main(argv: list[str] | None = None) -> None:
             handle_list(args)
         case "add":
             handle_add(args)
+        case "do":
+            handle_do(args)
         case _:
             parser.print_help()
 
