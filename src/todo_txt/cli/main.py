@@ -9,6 +9,7 @@ from pathlib import Path
 from .handle_add import handle_add
 from .handle_archive import handle_archive
 from .handle_do import handle_do
+from .handle_edit import handle_edit
 from .handle_list import handle_list
 
 
@@ -57,6 +58,11 @@ def main(argv: list[str] | None = None) -> None:
     do_parser = subparsers.add_parser("do", help="Marcar una tarea como completada")
     do_parser.add_argument("id", type=int, help="ID de la tarea")
 
+    # Subcomando 'edit'
+    edit_parser = subparsers.add_parser("edit", help="Editar el texto de una tarea")
+    edit_parser.add_argument("id", type=int, help="ID de la tarea a editar")
+    edit_parser.add_argument("text", type=str, help="Nuevo texto para la tarea")
+
     # Subcomando 'archive'
     subparsers.add_parser("archive", help="Archivar tareas completadas")
 
@@ -70,6 +76,8 @@ def main(argv: list[str] | None = None) -> None:
             handle_add(args)
         case "do":
             handle_do(args)
+        case "edit":
+            handle_edit(args)
         case "archive":
             handle_archive(args)
         case _:
