@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from todo_txt.model.task import TodoTask
+
+# Usamos TYPE_CHECKING para importar TaskFilter solo durante el análisis de tipos.
+# Esto evita una importación circular, ya que 'filters.py' a su vez podría
+# necesitar tipos definidos en este módulo en el futuro.
+if TYPE_CHECKING:
+    from todo_txt.model.filters import TaskFilter
 
 
 class TaskEntry(NamedTuple):
@@ -104,7 +110,7 @@ class TodoList:
 
         Args:
             is_completed: Si es True, solo terminadas. Si es False, solo pendientes.
-                         Si es None (por defecto), devuelve todas.
+                          Si es None (por defecto), devuelve todas.
 
         Returns:
             Una lista de TaskEntry que cumplen con el criterio de filtrado.
@@ -114,6 +120,23 @@ class TodoList:
         if is_completed is None:
             return all_entries
         return [e for e in all_entries if e.task.is_completed == is_completed]
+
+    def find(self, task_filter: TaskFilter) -> list[TaskEntry]:
+        """
+        Busca tareas que coincidan con un filtro complejo.
+
+        Este método centraliza la lógica de búsqueda, permitiendo desacoplar
+        la estructura interna de la lista de los criterios de filtrado
+        (objetos TaskFilter). Conserva siempre los IDs originales.
+
+        Args:
+            task_filter: Objeto que encapsula la lógica de comparación.
+
+        Returns:
+            Lista de TaskEntry que satisfacen el filtro.
+
+        """
+        return [entry for entry in self.list_all() if task_filter.matches(entry.task)]
 
     def __len__(self) -> int:
         """Devuelve el número total de líneas (incluyendo vacías)."""

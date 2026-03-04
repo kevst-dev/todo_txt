@@ -11,53 +11,49 @@ from todo_txt.view import print_tasks
 
 def test_integration_full_search_flow() -> None:
     """Prueba el flujo completo: query string -> filtros -> TodoList -> tabla."""
-    # 1. Cargar datos de prueba reales (desde tests/integration/data/)
+    # 1. Cargar datos de prueba reales
     todo_path = Path("tests/integration/data/todo.txt")
     done_path = Path("tests/integration/data/done.txt")
     repository = TodoRepository(todo_path, done_path)
     todo_list = repository.load_todo()
 
-    # 2. Definir una búsqueda compleja con Lark
-    # Queremos: (Proyectos uniandes O personal) Y NO completadas
-    # query = "(project == 'uniandes' OR project == 'personal') AND NOT done == True"
-    # query = "(project == 'uniandes') AND NOT done == True"
-    query = "\n".join(
-        [
-            # "project == 'uniandes' AND",
-            # "context != 'proyecto_notas' AND",
-            # "priority != 'D' AND",
-            # "priority >= E AND",
-            # "priority != '' AND",
-            # "tag.wait != '' AND",
-            "tag.due != '' AND",
-            "NOT done == True",
-        ]
-    )
+    # 2. Búsqueda compleja: Proyecto uniandes Y Prioridad D o mejor Y NO completadas
+    query = "project == 'uniandes' AND priority >= 'D' AND NOT done == True"
 
-    # 3. Parsear la expresión a objetos TaskFilter
+    print(f"\n--- Ejecutando búsqueda: {query} ---")
+
+    # 3. Parsear y ejecutar usando el nuevo método find()
     task_filter = parse_filter(query)
+    results = todo_list.find(task_filter)
 
-    # 4. Validar que el parser generó la estructura correcta
-    # assert isinstance(task_filter, AndFilter)
-    # assert isinstance(task_filter.filters[0], OrFilter)
-    # assert isinstance(task_filter.filters[1], NotFilter)
-
-    # 5. Ejecutar la búsqueda en la TodoList
-    # TODO: Implementar find() en TodoList para simplificar esto
-    results = [
-        entry for entry in todo_list.list_all() if task_filter.matches(entry.task)
-    ]
-
-    # 6. Validaciones de resultados
-    # Sabemos que hay muchas tareas de uniandes y personal pendientes en el archivo.
-    # assert len(results) > 0
-
-    # Todas las encontradas deben cumplir el criterio
-    """
+    # 4. Validaciones
+    assert len(results) > 0
     for entry in results:
         assert not entry.task.is_completed
-        assert "uniandes" in entry.task.projects or "personal" in entry.task.projects
-    """
-    # 7. Visualizar para confirmar visualmente
-    print(f"\nResultados para el query: {query}")
+        assert "uniandes" in entry.task.projects
+        assert entry.task.priority is not None
+        assert entry.task.priority <= "D"
+
+    # 5. Visualizar
+    print_tasks(results)
+
+
+def test_integration_empty_fields() -> None:
+    """Prueba la búsqueda de valores vacíos (nulls) usando el string vacío ''."""
+    todo_path = Path("tests/integration/data/todo.txt")
+    repository = TodoRepository(todo_path, Path("tests/integration/data/done.txt"))
+    todo_list = repository.load_todo()
+
+    # Queremos: Proyecto uniandes Y que NO tengan prioridad Y NO completadas
+    query = "project == 'uniandes' AND priority == '' AND NOT done == True"
+
+    print(f"\n--- Ejecutando búsqueda de vacíos: {query} ---")
+
+    task_filter = parse_filter(query)
+    results = todo_list.find(task_filter)
+
+    # Verificamos que las encontradas realmente no tienen prioridad
+    for entry in results:
+        assert entry.task.priority is None
+
     print_tasks(results)
