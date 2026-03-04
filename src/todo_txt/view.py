@@ -46,6 +46,9 @@ def print_tasks(
         Console().print("[yellow]No hay tareas para mostrar.[/yellow]")
         return
 
+    console = Console()
+    console.print("\n[bold cyan]📋 LISTA DE TAREAS[/bold cyan]")
+
     columns_to_show = columns or AVAILABLE_COLUMNS
     table = Table(show_header=True, header_style="bold magenta")
 
@@ -113,4 +116,7 @@ def print_tasks(
 
         table.add_row(*row_data)
 
-    Console().print(table)
+    console.print(table)
+    console.print(
+        f"[dim]Total de tareas: [bold white]{len(tasks_with_id)}[/bold white][/dim]\n"
+    )

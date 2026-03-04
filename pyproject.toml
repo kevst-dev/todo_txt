@@ -19,7 +19,7 @@ dev = [
 ]
 
 [project.scripts]
-dev = "todo_txt:main"
+dev = "todo_txt.cli.main:main"
 
 [build-system]
 requires = ["hatchling"]
