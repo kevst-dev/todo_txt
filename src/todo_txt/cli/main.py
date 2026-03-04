@@ -11,6 +11,7 @@ from .handle_archive import handle_archive
 from .handle_do import handle_do
 from .handle_edit import handle_edit
 from .handle_list import handle_list
+from .handle_note import handle_note
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -63,6 +64,10 @@ def main(argv: list[str] | None = None) -> None:
     edit_parser.add_argument("id", type=int, help="ID de la tarea a editar")
     edit_parser.add_argument("text", type=str, help="Nuevo texto para la tarea")
 
+    # Subcomando 'note'
+    note_parser = subparsers.add_parser("note", help="Abrir nota asociada a una tarea")
+    note_parser.add_argument("id", type=int, help="ID de la tarea con el tag note:file")
+
     # Subcomando 'archive'
     subparsers.add_parser("archive", help="Archivar tareas completadas")
 
@@ -78,6 +83,8 @@ def main(argv: list[str] | None = None) -> None:
             handle_do(args)
         case "edit":
             handle_edit(args)
+        case "note":
+            handle_note(args)
         case "archive":
             handle_archive(args)
         case _:
