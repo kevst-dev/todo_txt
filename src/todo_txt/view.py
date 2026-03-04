@@ -49,28 +49,36 @@ def print_tasks(
     console = Console()
     console.print("\n[bold cyan]📋 LISTA DE TAREAS[/bold cyan]")
 
-    columns_to_show = columns or AVAILABLE_COLUMNS
+    # Normalizar columnas (manejar si vienen como una sola cadena con espacios)
+    if columns:
+        columns_to_show = []
+        for col in columns:
+            columns_to_show.extend(col.lower().split())
+    else:
+        columns_to_show = AVAILABLE_COLUMNS
+
     table = Table(show_header=True, header_style="bold magenta")
 
-    # 1. Configurar las cabeceras de la tabla
-    if "id" in columns_to_show:
-        table.add_column("ID", justify="right", style="dim")
-    if "done" in columns_to_show:
-        table.add_column("Done", justify="center")
-    if "priority" in columns_to_show:
-        table.add_column("Prio", justify="center")
-    if "completion_date" in columns_to_show:
-        table.add_column("Done Date", justify="center")
-    if "creation_date" in columns_to_show:
-        table.add_column("Created", justify="center")
-    if "description" in columns_to_show:
-        table.add_column("Description", overflow="fold")
-    if "projects" in columns_to_show:
-        table.add_column("Projects", style="blue")
-    if "contexts" in columns_to_show:
-        table.add_column("Contexts", style="green")
-    if "tags" in columns_to_show:
-        table.add_column("Tags", style="dim italic")
+    # 1. Configurar las cabeceras de la tabla (en el orden solicitado)
+    # Usamos un mapa para mantener la coherencia
+    column_map = {
+        "id": ("ID", {"justify": "right", "style": "dim"}),
+        "done": ("Done", {"justify": "center"}),
+        "priority": ("Prio", {"justify": "center"}),
+        "completion_date": ("Done Date", {"justify": "center"}),
+        "creation_date": ("Created", {"justify": "center"}),
+        "description": ("Description", {"overflow": "fold"}),
+        "projects": ("Projects", {"style": "blue"}),
+        "contexts": ("Contexts", {"style": "green"}),
+        "tags": ("Tags", {"style": "dim italic"}),
+    }
+
+    actual_columns = []
+    for col_name in columns_to_show:
+        if col_name in column_map:
+            label, kwargs = column_map[col_name]
+            table.add_column(label, **kwargs)
+            actual_columns.append(col_name)
 
     # 2. Rellenar las filas
     for entry in tasks_with_id:
@@ -79,44 +87,43 @@ def print_tasks(
         row_data = []
         style = "dim" if task.is_completed else ""
 
-        if "id" in columns_to_show:
-            row_data.append(str(task_id))
-
-        if "done" in columns_to_show:
-            row_data.append("[green]x[/green]" if task.is_completed else "[red]o[/red]")
-
-        if "priority" in columns_to_show:
-            prio = task.priority or "-"
-            prio_style = PRIORITY_STYLES.get(prio, "")
-            row_data.append(Text(prio, style=prio_style))
-
-        if "completion_date" in columns_to_show:
-            row_data.append(
-                task.completion_date.isoformat() if task.completion_date else "-"
-            )
-
-        if "creation_date" in columns_to_show:
-            row_data.append(
-                task.creation_date.isoformat() if task.creation_date else "-"
-            )
-
-        if "description" in columns_to_show:
-            desc_text = Text(task.description, style=style)
-            row_data.append(desc_text)
-
-        if "projects" in columns_to_show:
-            row_data.append(" ".join(task.projects))
-
-        if "contexts" in columns_to_show:
-            row_data.append(" ".join(task.contexts))
-
-        if "tags" in columns_to_show:
-            tags_str = " ".join([f"{k}:{v}" for k, v in task.special_tags.items()])
-            row_data.append(tags_str)
+        for col_name in actual_columns:
+            match col_name:
+                case "id":
+                    row_data.append(str(task_id))
+                case "done":
+                    val = "[green]x[/green]" if task.is_completed else "[red]o[/red]"
+                    row_data.append(val)
+                case "priority":
+                    prio = task.priority or "-"
+                    prio_style = PRIORITY_STYLES.get(prio, "")
+                    row_data.append(Text(prio, style=prio_style))
+                case "completion_date":
+                    val = (
+                        task.completion_date.isoformat()
+                        if task.completion_date
+                        else "-"
+                    )
+                    row_data.append(val)
+                case "creation_date":
+                    val = task.creation_date.isoformat() if task.creation_date else "-"
+                    row_data.append(val)
+                case "description":
+                    row_data.append(Text(task.description, style=style))
+                case "projects":
+                    row_data.append(" ".join(task.projects))
+                case "contexts":
+                    row_data.append(" ".join(task.contexts))
+                case "tags":
+                    tags_str = " ".join(
+                        [f"{k}:{v}" for k, v in task.special_tags.items()]
+                    )
+                    row_data.append(tags_str)
 
         table.add_row(*row_data)
 
     console.print(table)
+
     console.print(
         f"[dim]Total de tareas: [bold white]{len(tasks_with_id)}[/bold white][/dim]\n"
     )
