@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from .handle_add import handle_add
 from .handle_list import handle_list
 
 
@@ -30,10 +31,10 @@ def main(argv: list[str] | None = None) -> None:
         help="Ruta al archivo done.txt",
     )
 
-    subparser = parser.add_subparsers(dest="command", help="Subcomandos")
+    subparsers = parser.add_subparsers(dest="command", help="Subcomandos")
 
     # Subcomando 'list'
-    list_parser = subparser.add_parser("list", help="Listar tareas")
+    list_parser = subparsers.add_parser("list", aliases=["ls"], help="Listar tareas")
     list_parser.add_argument(
         "--filter", type=str, help="Query de búsqueda avanzada (Lark)"
     )
@@ -44,12 +45,22 @@ def main(argv: list[str] | None = None) -> None:
     )
     list_parser.add_argument("--columns", nargs="+", help="Lista de columnas a mostrar")
 
+    # Subcomando 'add'
+    add_parser = subparsers.add_parser("add", help="Añadir una nueva tarea")
+    add_parser.add_argument(
+        "text", type=str, help="Texto de la tarea (ej: '(A) Mi tarea @casa +familia')"
+    )
+
     args = parser.parse_args(argv)
 
-    if args.command in ["list", "ls"]:
-        handle_list(args)
-    else:
-        parser.print_help()
+    # Pattern Matching para el manejo de comandos
+    match args.command:
+        case "list" | "ls":
+            handle_list(args)
+        case "add":
+            handle_add(args)
+        case _:
+            parser.print_help()
 
 
 if __name__ == "__main__":
