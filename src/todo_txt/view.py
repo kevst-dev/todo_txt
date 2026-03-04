@@ -30,6 +30,14 @@ PRIORITY_STYLES = {
 }
 
 
+def _get_priority_sort_key(entry: TaskEntry) -> tuple[int, int]:
+    """Ordena por prioridad (A=1 más alto) y luego por ID."""
+    prio = entry.task.priority
+    if prio is None:
+        return (27, entry.id)
+    return (ord(prio) - ord("A") + 1, entry.id)
+
+
 def print_tasks(
     tasks_with_id: list[TaskEntry],
     columns: list[str] | None = None,
@@ -81,6 +89,7 @@ def print_tasks(
             actual_columns.append(col_name)
 
     # 2. Rellenar las filas
+    tasks_with_id = sorted(tasks_with_id, key=_get_priority_sort_key)
     for entry in tasks_with_id:
         task_id = entry.id
         task = entry.task
