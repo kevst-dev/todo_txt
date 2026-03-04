@@ -26,6 +26,11 @@ test_integration *args:
     @echo "🚀 Testing code: Running pytest"
     @uv run pytest tests/integration {{args}}
 
+# Instalar el comando todo-txt globalmente en el sistema/usuario
+install-tool:
+    @echo "🚀 Installing todo-txt tool using uv"
+    @uv tool install --editable .
+
 # Ejecutar entorno de desarrollo
 run *args:
     @echo "🚀 Running development cli"
