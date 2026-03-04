@@ -40,49 +40,151 @@ class TaskFilter(ABC):
 class ProjectFilter(TaskFilter):
     """Filtra tareas que pertenecen a un proyecto específico (+proyecto)."""
 
-    def __init__(self, project: str) -> None:
-        """Inicializa el filtro con el nombre del proyecto."""
+    def __init__(self, project: str, operator: str = "==") -> None:
+        """
+        Inicializa el filtro con el nombre del proyecto y operador.
+
+        Si project es "", busca tareas sin proyectos asociados.
+        """
         self.project = project
+        self.operator = operator
 
     def matches(self, task: TodoTask) -> bool:
-        """Verifica si la tarea contiene el proyecto."""
-        return self.project in task.projects
+        """Verifica si la tarea cumple el criterio de proyecto."""
+        if self.project == "":
+            has_no_projects = len(task.projects) == 0
+            return has_no_projects if self.operator == "==" else not has_no_projects
+
+        is_present = self.project in task.projects
+        if self.operator == "==":
+            return is_present
+        if self.operator == "!=":
+            return not is_present
+        return False
 
 
 class ContextFilter(TaskFilter):
     """Filtra tareas que pertenecen a un contexto específico (@contexto)."""
 
-    def __init__(self, context: str) -> None:
-        """Inicializa el filtro con el nombre del contexto."""
+    def __init__(self, context: str, operator: str = "==") -> None:
+        """
+        Inicializa el filtro con el nombre del contexto y operador.
+
+        Si context es "", busca tareas sin contextos asociados.
+        """
         self.context = context
+        self.operator = operator
 
     def matches(self, task: TodoTask) -> bool:
-        """Verifica si la tarea contiene el contexto."""
-        return self.context in task.contexts
+        """Verifica si la tarea cumple el criterio de contexto."""
+        if self.context == "":
+            has_no_contexts = len(task.contexts) == 0
+            return has_no_contexts if self.operator == "==" else not has_no_contexts
+
+        is_present = self.context in task.contexts
+        if self.operator == "==":
+            return is_present
+        if self.operator == "!=":
+            return not is_present
+        return False
 
 
 class PriorityFilter(TaskFilter):
-    """Filtra tareas por su nivel de prioridad (A-Z)."""
+    """
+    Filtra tareas por su nivel de prioridad (A-Z).
 
-    def __init__(self, priority: str) -> None:
-        """Inicializa el filtro con la letra de prioridad."""
-        self.priority = priority
+    IMPORTANTE: En todo.txt, la prioridad 'A' es MAYOR que 'B'.
+    Por lo tanto, 'priority >= B' devolverá tareas con prioridad A y B.
+    Si priority es "", busca tareas sin prioridad asignada.
+    """
+
+    def __init__(self, priority: str, operator: str = "==") -> None:
+        """Inicializa el filtro con la letra de prioridad y operador."""
+        self.priority = priority.upper() if priority else ""
+        self.operator = operator
 
     def matches(self, task: TodoTask) -> bool:
-        """Verifica si la tarea tiene la prioridad exacta."""
-        return task.priority == self.priority
+        """Verifica si la tarea cumple el criterio de prioridad."""
+        if self.priority == "":
+            is_empty = task.priority is None
+            return is_empty if self.operator == "==" else not is_empty
+
+        if task.priority is None:
+            # Una tarea sin prioridad es menor que cualquier prioridad A-Z
+            return self.operator == "!="
+
+        tp = task.priority.upper()
+        sp = self.priority
+
+        # Lógica de comparación (Invertida alfabéticamente: A > B)
+        if self.operator == "==":
+            return tp == sp
+        if self.operator == "!=":
+            return tp != sp
+        if self.operator == ">":
+            return tp < sp
+        if self.operator == ">=":
+            return tp <= sp
+        if self.operator == "<":
+            return tp > sp
+        if self.operator == "<=":
+            return tp >= sp
+
+        return False
 
 
 class CompletedFilter(TaskFilter):
     """Filtra tareas según su estado de completitud (x)."""
 
-    def __init__(self, is_completed: bool = True) -> None:
-        """Inicializa el filtro con el estado deseado (True para hechas)."""
+    def __init__(self, is_completed: bool, operator: str = "==") -> None:
+        """Inicializa el filtro con el estado deseado y operador."""
         self.is_completed = is_completed
+        self.operator = operator
 
     def matches(self, task: TodoTask) -> bool:
         """Verifica si el estado de la tarea coincide."""
-        return task.is_completed == self.is_completed
+        matches_state = task.is_completed == self.is_completed
+        if self.operator == "==":
+            return matches_state
+        if self.operator == "!=":
+            return not matches_state
+        return False
+
+
+class TagFilter(TaskFilter):
+    """Filtra tareas por etiquetas genéricas (llave:valor)."""
+
+    def __init__(self, key: str, value: str, operator: str = "==") -> None:
+        """
+        Inicializa el filtro con la clave del tag, el valor esperado y operador.
+
+        Si value es "", busca tareas que no tengan definida esa etiqueta.
+        """
+        self.key = key
+        self.value = value
+        self.operator = operator
+
+    def matches(self, task: TodoTask) -> bool:
+        """Verifica si la tarea tiene el tag con el valor indicado."""
+        # Obtenemos el valor del tag (None si no existe)
+        actual_value = task.special_tags.get(self.key)
+
+        if self.value == "":
+            # Caso: Buscar tareas SIN este tag
+            is_missing = actual_value is None
+            return is_missing if self.operator == "==" else not is_missing
+
+        if actual_value is None:
+            # Si la tarea no tiene el tag, solo coincide si el operador es !=
+            return self.operator == "!="
+
+        if self.operator == "==":
+            return actual_value == self.value
+        if self.operator == "!=":
+            return actual_value != self.value
+
+        # Por ahora no soportamos rangos en tags genéricos (ej: wait > 'A')
+        return False
 
 
 # --- Filtros de Composición (Lógicos) ---

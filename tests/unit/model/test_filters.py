@@ -97,13 +97,13 @@ def test_complex_combination(sample_task: TodoTask) -> None:
     """Verifica una combinación lógica anidada compleja."""
     # (Project uniandes OR Project personal) AND (Priority A AND NOT Completed)
     f = (ProjectFilter("uniandes") | ProjectFilter("personal")) & (
-        PriorityFilter("A") & ~CompletedFilter()
+        PriorityFilter("A") & ~CompletedFilter(is_completed=True)
     )
 
     assert f.matches(sample_task) is True
 
     # Modificamos para que falle: Prioridad B
     f_fail = (ProjectFilter("uniandes") | ProjectFilter("personal")) & (
-        PriorityFilter("B") & ~CompletedFilter()
+        PriorityFilter("B") & ~CompletedFilter(is_completed=True)
     )
     assert f_fail.matches(sample_task) is False
