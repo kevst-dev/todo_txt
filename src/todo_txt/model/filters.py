@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import date
-from typing import cast
+from pathlib import Path
+from typing import Any, cast
 
 from todo_txt.model.task import TodoTask
 
@@ -154,7 +155,7 @@ class CompletedFilter(TaskFilter):
 
 
 class TagFilter(TaskFilter):
-    """Filtra tareas por etiquetas genéricas (llave:valor)."""
+    """Filtra tareas por etiquetas genéricas (llave:valor) con inferencia de tipos."""
 
     def __init__(self, key: str, value: str, operator: str = "==") -> None:
         """
@@ -166,22 +167,73 @@ class TagFilter(TaskFilter):
         self.value = value
         self.operator = operator
 
+    def _coerce_value(self, val: str) -> Any:
+        """Intenta inferir el tipo de dato del valor del tag."""
+        # 1. Booleanos
+        if val.lower() == "true":
+            return True
+        if val.lower() == "false":
+            return False
+
+        # 2. Fechas (ISO YYYY-MM-DD)
+        try:
+            return date.fromisoformat(val)
+        except ValueError:
+            pass
+
+        # 3. Números (float o int)
+        try:
+            if "." in val:
+                return float(val)
+            return int(val)
+        except ValueError:
+            pass
+
+        # 4. Rutas (Si contiene / o es una ruta válida existente)
+        if "/" in val or "\\" in val or val.startswith("./"):
+            return Path(val)
+
+        # 5. Texto (fallback)
+        return val
+
     def matches(self, task: TodoTask) -> bool:
-        """Verifica si la tarea tiene el tag con el valor indicado."""
-        actual_value = task.special_tags.get(self.key)
+        """Verifica si la tarea tiene el tag con el valor indicado usando tipos."""
+        actual_raw = task.special_tags.get(self.key)
 
         if self.value == "":
-            is_missing = actual_value is None
+            is_missing = actual_raw is None
             return is_missing if self.operator == "==" else not is_missing
 
-        if actual_value is None:
+        if actual_raw is None:
             return self.operator == "!="
 
-        # Lógica de comparación alfabética básica por ahora
+        # Inferimos tipos para ambos valores
+        v_actual = self._coerce_value(actual_raw)
+        v_target = self._coerce_value(self.value)
+
+        # Si los tipos no coinciden, comparamos como texto plano
+        if type(v_actual) is not type(v_target):
+            v_actual, v_target = str(v_actual), str(v_target)
+
+        # Operaciones permitidas según el tipo
+        is_range_op = self.operator in (">", ">=", "<", "<=")
+
+        # Booleanos y Paths no soportan rangos (devuelven False)
+        if isinstance(v_actual, (bool, Path)) and is_range_op:
+            return False
+
         if self.operator == "==":
-            return actual_value == self.value
+            return bool(v_actual == v_target)
         if self.operator == "!=":
-            return actual_value != self.value
+            return bool(v_actual != v_target)
+        if self.operator == ">":
+            return bool(v_actual > v_target)
+        if self.operator == ">=":
+            return bool(v_actual >= v_target)
+        if self.operator == "<":
+            return bool(v_actual < v_target)
+        if self.operator == "<=":
+            return bool(v_actual <= v_target)
 
         return False
 
@@ -190,15 +242,7 @@ class DateFilter(TaskFilter):
     """Filtra tareas por atributos de fecha (creación, completado)."""
 
     def __init__(self, attr_name: str, value: str, operator: str = "==") -> None:
-        """
-        Inicializa el filtro de fecha.
-
-        Args:
-            attr_name: Nombre del atributo en TodoTask (creation_date, completion_date).
-            value: Fecha en formato ISO (YYYY-MM-DD) o "" para nulos.
-            operator: Operador de comparación.
-
-        """
+        """Inicializa el filtro de fecha."""
         self.attr_name = attr_name
         self.operator = operator
         self.target_date = date.fromisoformat(value) if value != "" else None
@@ -217,17 +261,17 @@ class DateFilter(TaskFilter):
             return self.operator == "!="
 
         if self.operator == "==":
-            return actual_date == self.target_date
+            return bool(actual_date == self.target_date)
         if self.operator == "!=":
-            return actual_date != self.target_date
+            return bool(actual_date != self.target_date)
         if self.operator == ">":
-            return actual_date > self.target_date
+            return bool(actual_date > self.target_date)
         if self.operator == ">=":
-            return actual_date >= self.target_date
+            return bool(actual_date >= self.target_date)
         if self.operator == "<":
-            return actual_date < self.target_date
+            return bool(actual_date < self.target_date)
         if self.operator == "<=":
-            return actual_date <= self.target_date
+            return bool(actual_date <= self.target_date)
 
         return False
 

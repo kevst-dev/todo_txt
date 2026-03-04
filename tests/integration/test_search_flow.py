@@ -66,10 +66,34 @@ def test_integration_date_filters() -> None:
     task_filter = parse_filter(query)
     results = todo_list.find(task_filter)
 
-    # Verificamos que todas las tareas encontradas sean posteriores o iguales a la fecha
     target_date = date.fromisoformat(target_date_str)
     for entry in results:
         assert entry.task.creation_date is not None
         assert entry.task.creation_date >= target_date
+
+    print_tasks(results)
+
+
+def test_integration_tag_inference() -> None:
+    """Prueba la inferencia de tipos en TagFilter (fechas, números)."""
+    todo_path = Path("tests/integration/data/todo.txt")
+    repository = TodoRepository(todo_path, Path("tests/integration/data/done.txt"))
+    todo_list = repository.load_todo()
+
+    # 1. Probar rango de fechas en un tag personalizado (due)
+    # Buscamos tareas que venzan ANTES de finales de 2026
+    query = "tag.due < '2026-12-31' AND tag.due != '' AND NOT done == True"
+
+    print(f"\n--- Ejecutando búsqueda por rango en TAG (Fecha): {query} ---")
+
+    task_filter = parse_filter(query)
+    results = todo_list.find(task_filter)
+
+    assert len(results) > 0
+    limit_date = date(2026, 12, 31)
+    for entry in results:
+        due_val = entry.task.special_tags.get("due")
+        assert due_val is not None
+        assert date.fromisoformat(due_val) < limit_date
 
     print_tasks(results)
