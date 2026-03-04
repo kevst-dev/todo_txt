@@ -22,8 +22,8 @@ def handle_note(args: argparse.Namespace) -> None:
         task = todo_list.get_task(args.id)
 
         # 2. Verificar si tiene el tag 'note'
-        note_filename = task.special_tags.get("note")
-        if not note_filename:
+        note_val = task.special_tags.get("note")
+        if not note_val:
             msg = " ".join(
                 [
                     "\n[bold red]Error:[/] La tarea",
@@ -34,10 +34,17 @@ def handle_note(args: argparse.Namespace) -> None:
             Console().print(msg)
             return
 
-        # 3. Determinar la ruta de la nota (directorio 'notes/')
-        notes_dir = Path("notes")
-        notes_dir.mkdir(parents=True, exist_ok=True)
-        note_path = notes_dir / note_filename
+        # 3. Resolver la ruta de la nota
+        todo_dir = Path(args.todo_file).parent
+
+        # Comportamiento inteligente de pathlib:
+        # Si 'note_val' es una ruta absoluta (empieza por / o C:\), el operador '/'
+        # ignora automáticamente 'todo_dir' y devuelve la ruta absoluta tal cual.
+        # Si es relativa, la une al directorio donde vive el archivo todo.txt.
+        note_path = (todo_dir / note_val).resolve()
+
+        # Asegurar que el directorio de la nota existe (por si se va a crear una nueva)
+        note_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 4. Obtener el editor del sistema ($EDITOR)
         editor = os.environ.get("EDITOR", "nvim")
@@ -51,6 +58,9 @@ def handle_note(args: argparse.Namespace) -> None:
             ]
         )
         Console().print(msg)
+
+        # Lanzar el proceso del editor (bloqueante)
+        # nosec B603: El comando y el archivo son controlados por el usuario
         subprocess.run([editor, str(note_path)], check=True)  # nosec B603
         Console().print("[bold green]✓[/bold green] Editor cerrado.\n")
 
