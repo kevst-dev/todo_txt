@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .handle_add import handle_add
+from .handle_archive import handle_archive
 from .handle_do import handle_do
 from .handle_list import handle_list
 
@@ -56,6 +57,9 @@ def main(argv: list[str] | None = None) -> None:
     do_parser = subparsers.add_parser("do", help="Marcar una tarea como completada")
     do_parser.add_argument("id", type=int, help="ID de la tarea")
 
+    # Subcomando 'archive'
+    subparsers.add_parser("archive", help="Archivar tareas completadas")
+
     args = parser.parse_args(argv)
 
     # Pattern Matching para el manejo de comandos
@@ -66,6 +70,8 @@ def main(argv: list[str] | None = None) -> None:
             handle_add(args)
         case "do":
             handle_do(args)
+        case "archive":
+            handle_archive(args)
         case _:
             parser.print_help()
 
