@@ -29,4 +29,4 @@ test_integration *args:
 # Ejecutar entorno de desarrollo
 run *args:
     @echo "🚀 Running development cli"
-    @uv run dev {{args}}
+    @uv run todo-txt {{args}}
