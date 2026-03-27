@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from todo_txt.model.task import TodoTask
 
 
@@ -135,3 +137,31 @@ def test_parse_serialization_roundtrip() -> None:
     task = TodoTask.parse(line)
     # El roundtrip asegura que no perdemos información
     assert str(task) == line
+
+
+def test_complete_moves_priority_to_tag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Al completarla, la prioridad se convierte en el tag pri:"""
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls) -> FixedDate:
+            return cls(2026, 4, 1)
+
+    fixed_date = FixedDate.today()
+
+    monkeypatch.setattr("todo_txt.model.task.date", FixedDate)
+    task = TodoTask(
+        description="Enviar reporte",
+        priority="A",
+        creation_date=date(2026, 3, 20),
+    )
+
+    completed = task.complete()
+
+    assert completed.is_completed
+    assert completed.priority is None
+    assert completed.special_tags["pri"] == "A"
+    assert completed.completion_date == fixed_date
+    line = str(completed)
+    assert "(A)" not in line
+    assert "pri:A" in line

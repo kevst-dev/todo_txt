@@ -142,10 +142,15 @@ class TodoTask:
 
     def complete(self) -> TodoTask:
         """Devuelve una nueva instancia de la tarea marcada como completada."""
+        tags = dict(self.special_tags)
+        if self.priority:
+            tags["pri"] = self.priority
         return replace(
             self,
             is_completed=True,
             completion_date=date.today(),
+            priority=None,
+            special_tags=tags,
         )
 
     def __str__(self) -> str:

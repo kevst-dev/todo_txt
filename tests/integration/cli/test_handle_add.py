@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,8 @@ def test_handle_add_task(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     todo_path = tmp_path / "todo.txt"
     done_path = tmp_path / "done.txt"
     todo_path.touch()
+
+    current_date = date.today().isoformat()
 
     # 2. Argumentos para añadir una tarea
     task_text = "(A) Comprar café @mercado +compras"
@@ -37,7 +40,7 @@ def test_handle_add_task(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
 
     content = todo_path.read_text().strip()
     # El parser normaliza el orden (proyectos antes de contextos)
-    assert "2026-03-04" in content
+    assert current_date in content
     assert "(A) Comprar café" in content
     assert "+compras" in content
     assert "@mercado" in content
